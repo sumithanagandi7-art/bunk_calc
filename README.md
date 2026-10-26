@@ -221,5 +221,30 @@ psql -h localhost -U bunk_user bunk_calculator < backups/bunk_20240101_000000.sq
 
 ---
 
+## 🌐 Cloud Deployment (Vercel + Render)
+
+### Backend Deployment (Render Blueprint)
+1. Go to [Render Dashboard](https://dashboard.render.com/) and click **New +** → **Blueprint**.
+2. Connect your GitHub repository: `https://github.com/sumithanagandi7-art/bunk_calc`.
+3. Render will read `render.yaml` and automatically configure:
+   - **PostgreSQL Database**: Free managed instance (`bunk-calculator-db`).
+   - **Web Service API**: Free web service (`bunk-calculator-api`) running `npm install && npx prisma generate && npx prisma db push`.
+4. Copy your backend service URL (e.g. `https://bunk-calculator-api.onrender.com`).
+
+### Frontend Deployment (Vercel)
+1. Go to [Vercel Dashboard](https://vercel.com/dashboard) and click **Add New...** → **Project**.
+2. Import `sumithanagandi7-art/bunk_calc`.
+3. In **Project Settings**:
+   - **Root Directory**: `frontend`
+   - **Framework Preset**: `Vite`
+4. In **Environment Variables**, add:
+   - `VITE_API_URL` = `https://bunk-calculator-api.onrender.com` (your Render backend URL)
+5. Click **Deploy**.
+
+### Final Touch: CORS Sync
+In your Render backend service settings:
+- Update the `FRONTEND_URL` environment variable to your Vercel URL (e.g. `https://bunk-calc.vercel.app`) to ensure seamless CORS requests.
+
+---
+
 *Built with ❤️ for students who walk the fine line between attendance and freedom.*
->>>>>>> 995c359 (feat: complete Bunk Calculator app with Ollama Local AI & OpenCV OCR vision)
