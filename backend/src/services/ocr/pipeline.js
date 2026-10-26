@@ -7,6 +7,7 @@ import { generatePreprocessingVariants } from './preprocessor.js';
 import { getOCRProvider } from './providerInterface.js';
 import { detectTableStructure } from './tableDetector.js';
 import { validateAndScoreSubject } from './validator.js';
+import { parseTimetableWithSharp, isTimetableDocument } from '../ocr.js';
 
 const require = createRequire(import.meta.url);
 let pdfParse = null;
@@ -15,7 +16,7 @@ try {
 } catch (_) {}
 
 // Schema version for cache invalidation
-const EXTRACTION_SCHEMA_VERSION = '2.0.0';
+const EXTRACTION_SCHEMA_VERSION = '2.1.0';
 
 /**
  * Document Extraction Pipeline Orchestrator
@@ -204,13 +205,13 @@ RULES:
   // Pass 2: Python OpenCV + Tesseract OCR (fallback or verification)
   let tesseractRawText = '';
   const shouldRunTesseract = (engine === 'tesseract') || visionSubjects.length === 0 || qualityAnalysis.quality === 'poor';
-
   if (shouldRunTesseract) {
-    // For timetables, run Python OpenCV + Tesseract first
-    if (documentHint.includes('timetable') || documentHint === 'auto') {
+    // For timetables, run Python OpenCV + Tesseract first, then Sharp fallback
+    const isTt = documentHint.includes('timetable') || isTimetableDocument({ originalName: filePath, filePath });
+    if (isTt) {
       try {
         const pythonProvider = getOCRProvider('python_ocr');
-        const pyRes = await pythonProvider.extractData({ filePath });
+        const pyRes = await pythonProvider.extractData({ filePath, mode: isTt ? 'timetable' : 'auto' });
         if (pyRes.success && pyRes.parsed?.subjects && pyRes.parsed.subjects.length > 0) {
           tesseractSubjects = pyRes.parsed.subjects;
           if (visionSubjects.length === 0) {
@@ -219,6 +220,30 @@ RULES:
         }
       } catch (pyErr) {
         console.warn('Python OCR attempt failed:', pyErr.message);
+      }
+
+      // If Python OCR not available (e.g. deployed cloud), use Node.js Sharp timetable parser
+      if (tesseractSubjects.length === 0) {
+        try {
+          const sharpTT = await parseTimetableWithSharp(filePath);
+          if (sharpTT.subjects && sharpTT.subjects.length > 0) {
+            tesseractSubjects = sharpTT.subjects.map((s) => ({
+              subject_code: s.subject_code,
+              subject_name: s.subject_name,
+              faculty_name: s.faculty_name || '',
+              total_classes: 40,
+              total_classes_planned: 40,
+              presents: 0,
+              absents: 0,
+              attendance_percentage: null,
+            }));
+            if (visionSubjects.length === 0) {
+              extractionMethod = 'sharp_timetable_catalog';
+            }
+          }
+        } catch (sErr) {
+          console.warn('Sharp timetable fallback error in pipeline:', sErr.message);
+        }
       }
     }
 

@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
-import { executePythonAttendanceOCR } from './pythonOcrService.js';
+import { executePythonAttendanceOCR, executePythonOCR } from './pythonOcrService.js';
+import { isTimetableDocument } from '../ocr.js';
 
 dotenv.config();
 
@@ -169,10 +170,15 @@ export async function analyzeDocumentWithOllama({
   }
 
   // 2. Execute OpenCV Computer Vision preprocessing to isolate table crops and count date rows
+  const isTimetable = isTimetableDocument({ originalName: filePath, filePath }) || (prompt && prompt.toLowerCase().includes('timetable'));
   let opencvData = null;
   let imageToSend = filePath;
   try {
-    opencvData = await executePythonAttendanceOCR(filePath);
+    if (isTimetable) {
+      opencvData = await executePythonOCR(filePath, 'timetable');
+    } else {
+      opencvData = await executePythonAttendanceOCR(filePath);
+    }
     if (opencvData && opencvData.enhanced_crop_path && fs.existsSync(opencvData.enhanced_crop_path)) {
       imageToSend = opencvData.enhanced_crop_path;
     }
@@ -185,7 +191,7 @@ export async function analyzeDocumentWithOllama({
   const base64Image = fileBuffer.toString('base64');
 
   let finalPrompt = prompt || OLLAMA_VISION_SYSTEM_PROMPT;
-  if (opencvData && opencvData.success && (opencvData.presents > 0 || opencvData.absents > 0 || opencvData.subject_code)) {
+  if (!isTimetable && opencvData && opencvData.success && (opencvData.presents > 0 || opencvData.absents > 0 || opencvData.subject_code)) {
     finalPrompt = `${finalPrompt}
 
 OPENCV COMPUTER VISION PRE-DETECTION:
@@ -320,9 +326,17 @@ Visually examine the image crop, confirm the subject and exact counts (${opencvD
   if (opencvData && opencvData.success && opencvData.subjects && opencvData.subjects.length > 0) {
     return {
       success: true,
-      method: 'python_opencv_attendance',
-      document_type: 'attendance_report',
-      subjects: opencvData.subjects,
+      method: isTimetable ? 'python_opencv_timetable' : 'python_opencv_attendance',
+      document_type: isTimetable ? 'timetable' : 'attendance_report',
+      subjects: isTimetable
+        ? opencvData.subjects.map((s) => ({
+            ...s,
+            presents: 0,
+            absents: 0,
+            total_classes: 40,
+            total_classes_planned: 40,
+          }))
+        : opencvData.subjects,
       warnings: ['Extracted via OpenCV High-Precision Computer Vision'],
     };
   }

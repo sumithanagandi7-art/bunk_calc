@@ -1,7 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import { parsePDFDocument } from './pdfParser.js';
 import { parseSpreadsheetDocument } from './spreadsheetParser.js';
-import { parseAttendanceStatusWithOCR, parseTimetableWithOCR, parseAttendanceReportTableWithOCR } from '../ocr.js';
+import { parseAttendanceStatusWithOCR, parseTimetableWithOCR, parseTimetableWithSharp, parseAttendanceReportTableWithOCR, isTimetableDocument } from '../ocr.js';
+import { executePythonOCR } from '../ocr/pythonOcrService.js';
 import { analyzeDocumentWithLLM } from '../llmService.js';
 
 const prisma = new PrismaClient();
@@ -51,12 +52,14 @@ export async function processAttendanceDocument({
   let extractionMethod = 'unknown';
   let documentWarnings = [];
 
+  const isTimetable = isTimetableDocument({ originalName, filePath });
+
   // Execute Document Pipeline for PDFs & Images
   if (ext !== 'xlsx' && ext !== 'csv' && !mimeType.includes('spreadsheet') && !mimeType.includes('excel')) {
     const pipelineRes = await executeDocumentPipeline({
       filePath,
       mimeType,
-      documentHint: 'attendance report or timetable',
+      documentHint: isTimetable ? 'timetable' : 'attendance report or timetable',
       engine,
       ollamaModel,
       ollamaHost,
@@ -70,19 +73,17 @@ export async function processAttendanceDocument({
         raw_code: s.subject_code || s.raw_code || null,
         raw_name: s.subject_name || s.raw_name || null,
         faculty_name: s.faculty_name || '',
-        attended: s.classes_attended !== undefined ? s.classes_attended :
-                  s.presents !== undefined ? s.presents : null,
-        absents: s.absents !== undefined ? s.absents : null,
-        total: s.total_classes !== undefined ? s.total_classes :
-               s.total_classes_planned !== undefined ? s.total_classes_planned : null,
-        percentage: s.attendance_percentage,
-        confidence_score: s.confidence_score,
+        attended: isTimetable ? 0 : (s.classes_attended !== undefined ? s.classes_attended : (s.presents !== undefined ? s.presents : null)),
+        absents: isTimetable ? 0 : (s.absents !== undefined ? s.absents : null),
+        total: s.total_classes !== undefined ? s.total_classes : (s.total_classes_planned !== undefined ? s.total_classes_planned : 40),
+        percentage: isTimetable ? null : s.attendance_percentage,
+        confidence_score: s.confidence_score || 0.85,
         needs_review: s.needs_review || false,
         warnings: s.warnings || [],
       }));
 
-      // If single subject was extracted with 0 presents and 0 absents, cross-verify with table date row counter
-      if (rawExtracted.length === 1 && (!rawExtracted[0].attended) && (!rawExtracted[0].absents)) {
+      // If single subject was extracted with 0 presents and 0 absents from an attendance report, cross-verify
+      if (!isTimetable && rawExtracted.length === 1 && (!rawExtracted[0].attended) && (!rawExtracted[0].absents)) {
         try {
           const ocrCheck = await parseAttendanceStatusWithOCR(filePath);
           if (ocrCheck && (ocrCheck.presents > 0 || ocrCheck.absents > 0)) {
@@ -130,25 +131,72 @@ export async function processAttendanceDocument({
         });
       }
     } else {
-      // Image formats (PNG, JPG, JPEG) — fallback OCR methods
-      try {
-        const ocrTable = await parseAttendanceReportTableWithOCR(filePath);
-        if (ocrTable.rows && ocrTable.rows.length > 0) {
-          rawExtracted = ocrTable.rows.map(r => ({
-            ...r,
-            absents: r.absents !== undefined ? r.absents : null,
-            warnings: [],
-          }));
-          extractionMethod = 'ocr_image_table';
+      // Image formats (PNG, JPG, JPEG)
+      // 1. If detected as Timetable, extract subjects from timetable catalog and grid
+      if (isTimetable) {
+        try {
+          const pyRes = await executePythonOCR(filePath, 'timetable');
+          if (pyRes && pyRes.success && pyRes.subjects && pyRes.subjects.length > 0) {
+            rawExtracted = pyRes.subjects.map((s) => ({
+              raw_code: s.subject_code,
+              raw_name: s.subject_name,
+              faculty_name: s.faculty_name || '',
+              attended: 0,
+              absents: 0,
+              total: 40,
+              percentage: null,
+              warnings: [],
+            }));
+            extractionMethod = 'python_timetable_catalog';
+          }
+        } catch (pyErr) {
+          console.warn('Python timetable fallback notice:', pyErr.message);
         }
-      } catch (e) {
-        documentWarnings.push(`OCR table extraction failed: ${e.message}`);
+
+        if (rawExtracted.length === 0) {
+          try {
+            const sharpTT = await parseTimetableWithSharp(filePath);
+            if (sharpTT && sharpTT.subjects && sharpTT.subjects.length > 0) {
+              rawExtracted = sharpTT.subjects.map((s) => ({
+                raw_code: s.subject_code,
+                raw_name: s.subject_name,
+                faculty_name: s.faculty_name || '',
+                attended: 0,
+                absents: 0,
+                total: 40,
+                percentage: null,
+                warnings: [],
+              }));
+              extractionMethod = 'sharp_timetable_catalog';
+            }
+          } catch (sharpErr) {
+            console.warn('Sharp timetable fallback error:', sharpErr.message);
+          }
+        }
       }
 
-      if (rawExtracted.length === 0) {
+      // 2. Attendance report table fallback (only if NOT a timetable)
+      if (rawExtracted.length === 0 && !isTimetable) {
+        try {
+          const ocrTable = await parseAttendanceReportTableWithOCR(filePath);
+          if (ocrTable.rows && ocrTable.rows.length > 0) {
+            rawExtracted = ocrTable.rows.map(r => ({
+              ...r,
+              absents: r.absents !== undefined ? r.absents : null,
+              warnings: [],
+            }));
+            extractionMethod = 'ocr_image_table';
+          }
+        } catch (e) {
+          documentWarnings.push(`OCR table extraction failed: ${e.message}`);
+        }
+      }
+
+      // 3. Single-subject attendance status card fallback
+      if (rawExtracted.length === 0 && !isTimetable) {
         try {
           const ocrStatus = await parseAttendanceStatusWithOCR(filePath);
-          if (ocrStatus.presents !== null || ocrStatus.absents !== null) {
+          if (ocrStatus && (ocrStatus.presents !== null || ocrStatus.absents !== null || ocrStatus.subject_code)) {
             rawExtracted.push({
               raw_code: ocrStatus.subject_code || null,
               raw_name: ocrStatus.subject_name || null,
@@ -156,7 +204,7 @@ export async function processAttendanceDocument({
               absents: ocrStatus.absents,
               total: ocrStatus.total_detected || null,
               percentage: null,
-              warnings: ['Extracted from single-subject status card. Subject identification may be uncertain.'],
+              warnings: ['Extracted from single-subject status card.'],
             });
             extractionMethod = 'ocr_status_card';
           }

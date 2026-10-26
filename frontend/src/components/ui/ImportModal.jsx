@@ -289,8 +289,15 @@ const ImportModal = ({ open, onClose, onImportCompleted }) => {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-2xl font-extrabold text-gray-900">Review Imported Attendance</h3>
-              <p className="text-gray-500 text-sm mt-1">Extracted from <span className="font-bold text-gray-800">{fileName}</span>. Verify and edit numbers before saving.</p>
+              <h3 className="text-2xl font-extrabold text-gray-900">
+                {docType?.includes('timetable') ? 'Review Timetable Subjects' : 'Review Imported Attendance'}
+              </h3>
+              <p className="text-gray-500 text-sm mt-1">
+                Extracted from <span className="font-bold text-gray-800">{fileName}</span>.{' '}
+                {docType?.includes('timetable')
+                  ? 'Courses detected with 40 planned classes. Verify and edit numbers before saving.'
+                  : 'Verify and edit numbers before saving.'}
+              </p>
             </div>
             <button type="button" onClick={handleAddRow} className="btn-secondary text-xs flex items-center gap-1.5 py-2 px-3">
               <Plus size={14} /> Add Row
@@ -409,7 +416,7 @@ const ImportModal = ({ open, onClose, onImportCompleted }) => {
                 disabled={isImporting}
                 className="btn-primary py-2.5 px-6 text-sm flex items-center gap-2"
               >
-                {isImporting ? <LoadingSpinner size={16} /> : 'Import Attendance'}
+                {isImporting ? <LoadingSpinner size={16} /> : (docType?.includes('timetable') ? 'Import Timetable' : 'Import Attendance')}
               </button>
             </div>
           </div>

@@ -165,13 +165,13 @@ export class PythonOCRProvider extends OCRProvider {
     super('python_opencv_tesseract');
   }
 
-  async extractData({ filePath }) {
+  async extractData({ filePath, mode = 'auto' }) {
     if (!filePath || !fs.existsSync(filePath)) {
       return { success: false, error: 'File not found.' };
     }
 
     try {
-      const res = await executePythonOCR(filePath);
+      const res = await executePythonOCR(filePath, mode);
       if (res.success && res.subjects && res.subjects.length > 0) {
         return {
           success: true,

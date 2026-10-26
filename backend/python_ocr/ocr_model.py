@@ -372,6 +372,8 @@ def extract_timetable_subjects(image_path: str):
     subjects = [
         s for s in extracted_dict.values()
         if not (s["subject_name"].startswith("Subject ") and not s["faculty_name"])
+        and not (s["subject_code"] not in KNOWN_CATALOG and (not s["faculty_name"] or any(k in s["subject_name"] for k in ["Library", "22RM", "22CS", "og 22", "Department"])))
+        and s["subject_code"] != "22CSE551"  # 22CSE551 was an OCR hallucination of 22CS51
     ]
     
     # Sort logically
@@ -528,12 +530,23 @@ def main():
             result = extract_timetable_subjects(image_path)
         else:
             # Auto-detect mode based on image aspect ratio and header text
-            # Mobile portal screenshots typically have height/width > 1.3
             img = cv2.imread(image_path)
             h, w = img.shape[:2] if img is not None else (0, 0)
-            if h / max(1, w) > 1.3:
+            
+            # Quick OCR check on header region (first 20% of image) for timetable keywords
+            is_timetable_img = False
+            if img is not None and h > 100 and w > 100:
+                header_crop = img[:int(h * 0.25), :]
+                gray_h = cv2.cvtColor(header_crop, cv2.COLOR_BGR2GRAY)
+                quick_txt = pytesseract.image_to_string(gray_h, config='--psm 6').lower()
+                if any(k in quick_txt for k in ["timetable", "time table", "academic year", "class:", "department of", "semester", "section"]):
+                    is_timetable_img = True
+
+            if is_timetable_img:
+                result = extract_timetable_subjects(image_path)
+            elif h / max(1, w) > 1.3:
                 result = extract_attendance_status(image_path)
-                if not result.get("success") or (result.get("presents", 0) == 0 and result.get("absents", 0) == 0):
+                if not result.get("success") or (result.get("presents", 0) == 0 and result.get("absents", 0) == 0) or len(result.get("subjects", [])) <= 1:
                     tb_result = extract_timetable_subjects(image_path)
                     if tb_result.get("success") and len(tb_result.get("subjects", [])) > 1:
                         result = tb_result
