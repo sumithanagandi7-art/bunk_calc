@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bunk Calculator Sync Settings</title>
+  <style>
+    body {
+      background-color: #0A0A1A;
+      color: #F3F4F6;
+      font-family: system-ui, -apple-system, sans-serif;
+      padding: 40px;
+      max-width: 650px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #6C63FF, #00D2FF);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #FFFFFF;
+      font-size: 14px;
+      box-sizing: border-box;
+      outline: none;
+    }
+    button {
+      background: linear-gradient(135deg, #6C63FF, #00D2FF);
+      border: none;
+      color: #FFFFFF;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 14px;
+    }
+    .notice {
+      background: rgba(108, 99, 255, 0.1);
+      border: 1px solid rgba(108, 99, 255, 0.25);
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      color: #D1D5DB;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <h1>Bunk Calculator Sync Extension Settings</h1>
+  <p style="color: #9CA3AF; font-size: 14px;">Configure backend connection parameters and compliance settings.</p>
+
+  <div class="card">
+    <label for="api-url-input">Backend API URL</label>
+    <input type="text" id="api-url-input" value="http://localhost:4000/api/v1" />
+    <button id="save-btn">Save Settings</button>
+    <span id="save-status" style="margin-left: 12px; font-size: 13px; color: #34D399;"></span>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom: 8px; font-size: 16px;">Compliance & Terms Notice</h3>
+    <div class="notice">
+      <strong>Important Compliance & Terms of Service Information:</strong><br>
+      The <em>Bunk Calculator Sync</em> extension reads rendered attendance HTML table elements directly within your logged-in browser session. It <strong>never stores or transmits your college portal passwords or credentials</strong>.<br><br>
+      Before deploying or using this extension in production, confirm that your institution's Terms of Service permit automated browser reading of your personal attendance statistics.
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

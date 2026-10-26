@@ -1,0 +1,60 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+*.env
+
+# Python cache & artifacts
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*$py.class
+
+# Builds and production outputs
+dist/
+*/dist/
+build/
+*.tsbuildinfo
+
+# Uploads & temporary file storage
+uploads/
+*/uploads/
+backups/
+temp/
+tmp/
+
+# Databases
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Portable binaries, archives & setup downloads
+tools/
+tesseract/
+*.tar.gz
+*.zip
+*.traineddata
+
+# Vite cache & temp files
+vite.config.js.timestamp*
+*.timestamp-*.mjs
+
+# Temporary scratch scripts
+backend/scratch_*.js
+backend/test_*.js

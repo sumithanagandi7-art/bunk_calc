@@ -1,0 +1,151 @@
+// Bunk Calculator — Prisma Schema
+// Database: SQLite
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ──────────────────────────────────────────
+// WORKSPACES (Access Codes)
+// ──────────────────────────────────────────
+
+model Workspace {
+  workspace_id String    @id @default(uuid())
+  access_code  String    @unique
+  name         String?
+  email        String?
+  role         String?   @default("student")
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @default(now()) @updatedAt
+
+  subjects     Subject[]
+
+  @@map("workspaces")
+}
+
+// ──────────────────────────────────────────
+// INSTITUTIONS
+// ──────────────────────────────────────────
+
+model Institution {
+  institution_id        Int                @id @default(autoincrement())
+  name                  String
+  checkpoint1_threshold Float              @default(75.0)
+  checkpoint2_threshold Float              @default(85.0)
+  created_at            DateTime           @default(now())
+
+  academic_calendars    AcademicCalendar[]
+
+  @@map("institutions")
+}
+
+// ──────────────────────────────────────────
+// ACADEMIC CALENDARS
+// ──────────────────────────────────────────
+
+model AcademicCalendar {
+  calendar_id              Int         @id @default(autoincrement())
+  institution_id           Int
+  semester_label           String      // e.g. "Semester 3 — 2025-26"
+  checkpoint1_start_date   DateTime
+  checkpoint1_end_date     DateTime
+  checkpoint2_start_date   DateTime
+  checkpoint2_end_date     DateTime
+  end_of_classes_date      DateTime
+  uploaded_file_path       String?     // original PDF/image reference
+  created_at               DateTime    @default(now())
+
+  institution              Institution @relation(fields: [institution_id], references: [institution_id], onDelete: Restrict)
+
+  @@map("academic_calendars")
+}
+
+// ──────────────────────────────────────────
+// SUBJECTS
+// ──────────────────────────────────────────
+
+model Subject {
+  subject_id             String              @id @default(uuid())
+  subject_code           String
+  subject_name           String
+  faculty_name           String?
+  total_classes_planned  Int                 @default(0)
+  workspace_id           String
+  created_at             DateTime            @default(now())
+
+  workspace              Workspace           @relation(fields: [workspace_id], references: [workspace_id], onDelete: Cascade)
+  attendance_records     AttendanceRecord[]
+  bunk_calculations      BunkCalculation[]
+
+  @@unique([workspace_id, subject_code])
+  @@map("subjects")
+}
+
+// ──────────────────────────────────────────
+// ATTENDANCE RECORDS
+// ──────────────────────────────────────────
+
+model AttendanceRecord {
+  record_id  String            @id @default(uuid())
+  subject_id String
+  class_date DateTime
+  time_slot  String            // e.g. "09:00-10:00"
+  status     String            // "present", "absent", "condoned"
+  source     String            @default("manual") // "manual", "ocr_upload", "portal_sync"
+  notes      String?
+  created_at DateTime          @default(now())
+
+  subject    Subject           @relation(fields: [subject_id], references: [subject_id], onDelete: Cascade)
+
+  @@unique([subject_id, class_date, time_slot])
+  @@index([subject_id, class_date])
+  @@map("attendance_records")
+}
+
+// ──────────────────────────────────────────
+// BUNK CALCULATIONS (cached)
+// ──────────────────────────────────────────
+
+model BunkCalculation {
+  calc_id            String         @id @default(uuid())
+  subject_id         String
+  checkpoint         String         // "mse1", "mse2"
+  current_percentage Float
+  classes_attended   Int
+  classes_total      Int
+  bunks_remaining    Int
+  status             String         // "safe", "tight", "at_risk"
+  calculated_at      DateTime       @default(now())
+
+  subject            Subject        @relation(fields: [subject_id], references: [subject_id], onDelete: Cascade)
+
+  @@unique([subject_id, checkpoint])
+  @@map("bunk_calculations")
+}
+
+// ──────────────────────────────────────────
+// ATTENDANCE IMPORTS (Audit Log)
+// ──────────────────────────────────────────
+
+model AttendanceImport {
+  import_id          String    @id @default(uuid())
+  workspace_id       String
+  file_name          String
+  file_type          String    // "pdf", "image", "xlsx", "csv"
+  file_hash          String?   // SHA-256 hash for OCR result caching
+  extracted_count    Int       @default(0)
+  status             String    @default("pending") // "pending", "confirmed", "failed"
+  quality_score      String?   // "good", "poor", "excellent"
+  average_confidence Float?    // Average confidence score across all fields
+  raw_ocr_data       String?   // JSON raw OCR response storage for audit/debugging
+  imported_at        DateTime?
+  created_at         DateTime  @default(now())
+
+  @@map("attendance_imports")
+}
+

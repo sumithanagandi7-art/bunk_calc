@@ -1,0 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&family=Quicksand:wght@300;400;500;600;700&family=Permanent+Marker&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background-color: #F8F9FA;
+    color: #111827;
+    font-family: 'Quicksand', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Nunito', sans-serif;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #F3F4F6; }
+  ::-webkit-scrollbar-thumb { background: #C4B5FD; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #8B5CF6; }
+  * { scrollbar-width: thin; scrollbar-color: #C4B5FD #F3F4F6; }
+}
+
+@layer components {
+  .card {
+    @apply bg-white border border-gray-100 rounded-2xl shadow-soft;
+  }
+  .card-hover {
+    @apply hover:-translate-y-1 hover:shadow-soft-hover transition-all duration-300;
+  }
+  .btn-primary {
+    @apply px-6 py-3 rounded-xl font-bold transition-all duration-300 
+           bg-primary text-white hover:bg-primary-600 hover:shadow-glow 
+           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply px-6 py-3 rounded-xl font-bold transition-all duration-300
+           bg-white text-gray-700 border border-gray-200
+           hover:bg-gray-50 hover:border-gray-300 active:scale-95;
+  }
+  .input-field {
+    @apply w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3
+           text-gray-900 placeholder-gray-400 outline-none transition-all duration-300
+           focus:border-primary focus:bg-white focus:ring-2 focus:ring-primary/20;
+  }
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent;
+  }
+}

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Contineo ERP - Student Attendance Portal (Demo)</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 30px;
+    }
+    .portal-container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    h1 {
+      color: #1e293b;
+      font-size: 22px;
+      margin-top: 0;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 12px;
+    }
+    .student-info {
+      background: #e0f2fe;
+      border-left: 4px solid #0284c7;
+      padding: 12px 16px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      color: #0369a1;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 12px;
+      text-align: left;
+      font-size: 14px;
+    }
+    th {
+      background-color: #f1f5f9;
+      color: #334155;
+      font-weight: 700;
+    }
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .badge-good { background: #dcfce7; color: #15803d; }
+    .badge-warn { background: #fef3c7; color: #b45309; }
+  </style>
+</head>
+<body>
+
+  <div class="portal-container">
+    <h1>College ERP — Student Attendance Portal</h1>
+    
+    <div class="student-info">
+      <strong>Student Name:</strong> Sumit Kumar &nbsp;|&nbsp; 
+      <strong>USN:</strong> 1NI22CS101 &nbsp;|&nbsp; 
+      <strong>Branch & Semester:</strong> CSE — Semester 5
+    </div>
+
+    <h3>Semester Enrolled Course Attendance Table</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Course Code</th>
+          <th>Course Title</th>
+          <th>Faculty Name</th>
+          <th>Classes Conducted</th>
+          <th>Classes Attended</th>
+          <th>Percentage (%)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>22CS51</strong></td>
+          <td>Computer Networks</td>
+          <td>Dr. Ramesh Kumar</td>
+          <td>32</td>
+          <td>28</td>
+          <td><span class="status-badge badge-good">87.5%</span></td>
+        </tr>
+        <tr>
+          <td><strong>22CS52</strong></td>
+          <td>Theory of Computation</td>
+          <td>Prof. Anitha S</td>
+          <td>30</td>
+          <td>26</td>
+          <td><span class="status-badge badge-good">86.7%</span></td>
+        </tr>
+        <tr>
+          <td><strong>22CSL54</strong></td>
+          <td>Computer Networks Laboratory</td>
+          <td>Prof. Vikram H</td>
+          <td>20</td>
+          <td>18</td>
+          <td><span class="status-badge badge-good">90.0%</span></td>
+        </tr>
+        <tr>
+          <td><strong>22CSE553</strong></td>
+          <td>Ethical Hacking</td>
+          <td>Dr. Indira R</td>
+          <td>25</td>
+          <td>16</td>
+          <td><span class="status-badge badge-warn">64.0%</span></td>
+        </tr>
+        <tr>
+          <td><strong>22CSG59</strong></td>
+          <td>Computational Statistics</td>
+          <td>Prof. Shruthi Shetty</td>
+          <td>28</td>
+          <td>24</td>
+          <td><span class="status-badge badge-good">85.7%</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</body>
+</html>
