@@ -10,10 +10,16 @@ const useSubjectStore = create((set, get) => ({
     set({ loading: true, error: null });
     try {
       const { data } = await api.get('/subjects');
-      set({ subjects: data.subjects || data.data || data, loading: false });
+      let list = [];
+      if (Array.isArray(data?.subjects)) list = data.subjects;
+      else if (Array.isArray(data?.data)) list = data.data;
+      else if (Array.isArray(data)) list = data;
+      set({ subjects: list, loading: false });
+      return list;
     } catch (err) {
-      set({ error: err.message, loading: false });
-      throw err;
+      console.warn('Could not fetch subjects:', err.message);
+      set({ subjects: get().subjects || [], error: err.message, loading: false });
+      return get().subjects || [];
     }
   },
 

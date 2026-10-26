@@ -143,10 +143,12 @@ const Dashboard = () => {
   const [importOpen,   setImportOpen]   = useState(false);
   const [editSubject,  setEditSubject]  = useState(null);
   
+  const safeSubjects = Array.isArray(subjects) ? subjects : [];
+
   const overall = (() => {
     let totalAttended = 0;
     let totalClasses = 0;
-    subjects.forEach(s => {
+    safeSubjects.forEach(s => {
       const calc = s.bunk_calculations?.find(c => c.checkpoint === 'mse1') || s.bunk_calculations?.[0];
       if (calc) {
         totalAttended += (calc.classes_attended || 0);
@@ -157,17 +159,17 @@ const Dashboard = () => {
   })();
   
   // Calculate remaining bunks (for simple display)
-  const safeCount = subjects.filter(s => {
+  const safeCount = safeSubjects.filter(s => {
     const calc = s.bunk_calculations?.find(c => c.checkpoint === 'mse1') || s.bunk_calculations?.[0];
     return calc?.status === 'safe' || (calc?.current_percentage >= 75);
   }).length;
   
-  const riskCount = subjects.filter(s => {
+  const riskCount = safeSubjects.filter(s => {
     const calc = s.bunk_calculations?.find(c => c.checkpoint === 'mse1') || s.bunk_calculations?.[0];
     return calc?.status === 'at_risk' || (calc?.current_percentage < 60);
   }).length;
 
-  const totalBunksLeft = subjects.reduce((acc, s) => {
+  const totalBunksLeft = safeSubjects.reduce((acc, s) => {
     const calc = s.bunk_calculations?.find(c => c.checkpoint === 'mse1') || s.bunk_calculations?.[0];
     return acc + (calc?.bunks_remaining > 0 ? calc.bunks_remaining : 0);
   }, 0);

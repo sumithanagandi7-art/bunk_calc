@@ -105,28 +105,29 @@ const MarkAttendanceModal = ({ open, onClose, subjects, selectedSubjectId, onMar
 
 const cleanStr = (s) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
-const findSubjectMatch = (rawCode, rawName, availableSubjects) => {
+const findSubjectMatch = (rawCode, rawName, availableSubjects = []) => {
+  const list = Array.isArray(availableSubjects) ? availableSubjects : [];
   const cCode = cleanStr(rawCode);
   const cName = cleanStr(rawName);
 
   if (!cCode && !cName) return null;
 
   // 1. Exact or cleaned code match
-  let match = availableSubjects.find(s => {
+  let match = list.find(s => {
     const sc = cleanStr(s.subject_code);
     return sc && (sc === cCode || sc === cName);
   });
   if (match) return match;
 
   // 2. Exact or cleaned name match
-  match = availableSubjects.find(s => {
+  match = list.find(s => {
     const sn = cleanStr(s.subject_name);
     return sn && (sn === cName || sn === cCode);
   });
   if (match) return match;
 
   // 3. Substring match
-  match = availableSubjects.find(s => {
+  match = list.find(s => {
     const sc = cleanStr(s.subject_code);
     const sn = cleanStr(s.subject_name);
     return (sc && (cName.includes(sc) || cCode.includes(sc))) ||

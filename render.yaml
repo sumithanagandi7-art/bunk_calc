@@ -1,12 +1,13 @@
 services:
-  # ── Backend API Web Service (Docker container with Node + Python + OpenCV) ──
+  # ── Backend API Web Service (Fast Node.js runtime with Sharp OCR) ──
   - type: web
     name: bunk-calculator-api
-    env: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    runtime: node
+    rootDir: backend
     plan: free
     region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
