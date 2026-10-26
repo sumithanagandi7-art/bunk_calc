@@ -19,6 +19,8 @@ dist/
 */dist/
 build/
 *.tsbuildinfo
+.vite/
+*/.vite/
 
 # Uploads & temporary file storage
 uploads/
