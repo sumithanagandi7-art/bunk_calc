@@ -232,7 +232,14 @@ const AIEngineModal = ({ open, onClose }) => {
               <div className="flex-1">
                 {testResult.success ? (
                   <div>
-                    <p className="font-bold">✓ Ollama connected successfully ({testResult.latency}ms ping)</p>
+                    <p className="font-bold">
+                      ✓ Ollama connected successfully ({testResult.latency}ms)
+                      {testResult.mode === 'direct_browser' && (
+                        <span className="ml-1.5 text-[10px] font-bold bg-green-200 text-green-800 px-1.5 py-0.5 rounded">
+                          Direct Device AI
+                        </span>
+                      )}
+                    </p>
                     <p className="mt-0.5 text-[11px]">
                       {allModels.length} models installed. Vision models found: {visionModels.length}.
                     </p>
@@ -241,6 +248,13 @@ const AIEngineModal = ({ open, onClose }) => {
                   <div>
                     <p className="font-bold">Ollama not detected at {tempHost}</p>
                     <p className="mt-0.5 text-[11px]">{testResult.error}</p>
+                    {testResult.troubleshooting && (
+                      <ul className="mt-1 space-y-0.5 list-disc list-inside text-[10px] opacity-90">
+                        {testResult.troubleshooting.map((tip, i) => (
+                          <li key={i}>{tip}</li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 )}
               </div>

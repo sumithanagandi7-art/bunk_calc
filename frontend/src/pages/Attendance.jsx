@@ -13,6 +13,7 @@ import AIEngineBadge   from '../components/ui/AIEngineBadge.jsx';
 import { useAIEngineStore } from '../store/aiEngineStore.js';
 import useSubjects    from '../hooks/useSubjects.js';
 import api            from '../lib/api.js';
+import { extractWithClientOllama } from '../services/ollamaClient.js';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -189,7 +190,29 @@ const AttendanceStatusUpload = ({ subjects, initialSubjectId = '', onSynced }) =
     if (ollamaHost) fd.append('ollama_host', ollamaHost);
 
     try {
-      const { data } = await api.post('/attendance/extract-status', fd, {
+      let data = null;
+
+    // 1. If engine is 'ollama', try direct client-side extraction on user's device first
+    if (engine === 'ollama') {
+      try {
+        setProcessingText(`Connecting to Ollama Local AI (${ollamaModel || 'vision'})...`);
+        setProgress(35);
+        data = await extractWithClientOllama({ file, host: ollamaHost, model: ollamaModel });
+        setProgress(90);
+        setProcessingText('Extracted from photo via Ollama on your device!');
+      } catch (clientErr) {
+        console.warn('Client-side Ollama direct call notice:', clientErr.message, 'Routing to server backend...');
+      }
+    }
+
+    // 2. If client Ollama wasn't used or had CORS/network error, route to backend server
+    if (!data) {
+      setProcessingText(
+        engine === 'ollama'
+          ? `Routing to backend bridge for Ollama (${ollamaModel || 'vision'})...`
+          : 'Extracting presents & absents from photo via Vision AI...'
+      );
+      const res = await api.post('/attendance/extract-status', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 90000,
         signal: controller.signal,
@@ -197,13 +220,10 @@ const AttendanceStatusUpload = ({ subjects, initialSubjectId = '', onSynced }) =
           if (evt.total) setProgress(Math.round((evt.loaded * 50) / evt.total));
         },
       });
+      data = res.data;
+    }
 
-      setProgress(90);
-      setProcessingText(
-        engine === 'ollama'
-          ? `Analyzing with Ollama Local Vision (${ollamaModel || 'vision'})...`
-          : 'Extracting presents & absents from photo via Vision AI...'
-      );
+    setProgress(95);
 
       setTimeout(() => {
         const parsed = data.parsed || data.data || data;

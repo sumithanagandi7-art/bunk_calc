@@ -1,13 +1,12 @@
 services:
-  # ── Backend API Web Service ───────────────────────────────────
+  # ── Backend API Web Service (Docker container with Node + Python + OpenCV) ──
   - type: web
     name: bunk-calculator-api
-    runtime: node
-    rootDir: backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
     plan: free
     region: oregon
-    buildCommand: npm install && npx prisma generate && npx prisma db push
-    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production

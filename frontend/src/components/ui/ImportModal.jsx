@@ -7,6 +7,7 @@ import FileDropzone from './FileDropzone.jsx';
 import AIEngineBadge from './AIEngineBadge.jsx';
 import { useAIEngineStore } from '../../store/aiEngineStore.js';
 import api from '../../lib/api.js';
+import { extractWithClientOllama } from '../../services/ollamaClient.js';
 
 const ImportModal = ({ open, onClose, onImportCompleted }) => {
   const [step, setStep] = useState(1); // 1: Upload/File selected, 2: Processing, 3: Verification, 4: Success
@@ -77,26 +78,54 @@ const ImportModal = ({ open, onClose, onImportCompleted }) => {
     if (ollamaHost) fd.append('ollama_host', ollamaHost);
 
     try {
-      const { data } = await api.post('/attendance/import', fd, {
+      let data = null;
+
+    // 1. If engine is 'ollama', attempt direct in-browser extraction first
+    if (engine === 'ollama') {
+      try {
+        setProcessingText(`Connecting to Ollama Local AI (${ollamaModel || 'vision'})...`);
+        setProgress(35);
+        const clientRes = await extractWithClientOllama({
+          file: selectedFile,
+          host: ollamaHost,
+          model: ollamaModel,
+        });
+        if (clientRes && clientRes.parsed && clientRes.parsed.subjects) {
+          data = {
+            import_id: 'client_' + Date.now(),
+            file_name: selectedFile.name,
+            extraction_method: clientRes.engine_used,
+            subjects: clientRes.parsed.subjects,
+          };
+          setProgress(90);
+          setProcessingText('Extracted subjects via Ollama on your device!');
+        }
+      } catch (cErr) {
+        console.warn('Client-side Ollama notice in ImportModal:', cErr.message, 'Using backend bridge...');
+      }
+    }
+
+    // 2. If client Ollama wasn't used or failed, send to backend API
+    if (!data) {
+      setProcessingText(
+        engine === 'ollama'
+          ? `Routing to backend bridge for Ollama (${ollamaModel || 'vision'})...`
+          : 'Analyzing document structure with Vision AI...'
+      );
+      const res = await api.post('/attendance/import', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
         signal: controller.signal,
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             const percent = Math.round((progressEvent.loaded * 60) / progressEvent.total);
             setProgress(percent);
-            if (percent >= 50) {
-              setProcessingText(
-                engine === 'ollama'
-                  ? `Analyzing with Ollama Local Vision (${ollamaModel || 'vision'})...`
-                  : 'Analyzing document structure with Vision AI...'
-              );
-            }
           }
         },
       });
+      data = res.data;
+    }
 
-      setProgress(90);
-      setProcessingText('Extracting subjects and timetable schedule...');
+    setProgress(95);
 
       setTimeout(() => {
         setImportId(data.import_id || '');
