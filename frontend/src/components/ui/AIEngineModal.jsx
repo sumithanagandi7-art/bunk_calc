@@ -215,6 +215,22 @@ const AIEngineModal = ({ open, onClose }) => {
             </div>
           </div>
 
+          {typeof window !== 'undefined' && window.location.protocol === 'https:' && tempHost.includes('localhost') && (
+            <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 text-[11px] space-y-1">
+              <p className="font-bold flex items-center gap-1">
+                <span>🔒</span> Browser Security Note for Deployed HTTPS Web Apps:
+              </p>
+              <p className="text-gray-600">
+                Browsers (Chrome/Edge) block public HTTPS sites from fetching <code className="font-bold text-gray-800">http://localhost</code> directly.
+              </p>
+              <div className="flex flex-col gap-1 text-[10.5px] pt-0.5">
+                <span>• <strong>Option A (Easiest)</strong>: Run locally at <a href="http://localhost:3000" className="text-primary font-bold underline">http://localhost:3000</a> where direct device Ollama is unrestricted!</span>
+                <span>• <strong>Option B (Cloud Tunnel)</strong>: Run <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">npx localtunnel --port 11434</code> and paste the resulting HTTPS URL above.</span>
+                <span>• <strong>Option C (No Setup)</strong>: Switch to <strong>Smart Hybrid (Auto)</strong> to use our cloud Sharp OCR with 100% accuracy!</span>
+              </div>
+            </div>
+          )}
+
           {/* Connection Status Banner */}
           {testResult && (
             <div
